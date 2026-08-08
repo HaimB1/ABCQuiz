@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ABC Letter Quiz</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main id="quiz-section">
+    <div class="top-bar">
+      <button id="replay-button" aria-label="Replay letter">🔊</button>
+      <button id="settings-button" aria-label="Settings">⚙️</button>
+    </div>
+    <div id="letter-grid"></div>
+  </main>
+
+  <section id="settings-section" class="hidden">
+    <h2>Settings</h2>
+    <label>
+      <input type="checkbox" id="auto-speak-toggle">
+      Speak letter automatically
+    </label>
+    <label>
+      <input type="checkbox" id="persist-mistakes-toggle">
+      Remember missed letters
+    </label>
+    <label>
+      Rounds per session:
+      <input type="number" id="rounds-per-session-input" min="5" max="20">
+    </label>
+    <label>
+      Voice:
+      <select id="voice-select"></select>
+      <button id="voice-test-button" type="button">🔊 Test</button>
+    </label>
+    <button id="settings-close-button">Done</button>
+  </section>
+
+  <section id="celebration-section" class="hidden">
+    <h2>Great job!</h2>
+    <p id="score-summary"></p>
+    <button id="play-again-button">Play Again</button>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>

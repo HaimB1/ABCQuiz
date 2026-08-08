@@ -2,9 +2,11 @@
 
 ## Context
 
-The goal is a small iOS app that teaches a young kid the alphabet: the app speaks a letter aloud, and the kid picks the matching letter out of four displayed choices (mixed uppercase/lowercase). The app is a personal/family tool, not intended for App Store distribution.
+The goal is a small app that teaches a young kid the alphabet: the app speaks a letter aloud, and the kid picks the matching letter out of four displayed choices (mixed uppercase/lowercase). The app is a personal/family tool.
 
-This spec is split into two parts: the **game definition** (the rules of play — platform-independent, could be unit tested or even ported elsewhere) and the **app details** (how it's built and delivered as an iOS app). Keeping these separate means the game logic can be reasoned about and tested on its own, without pulling in SwiftUI/AVFoundation concerns.
+This spec is split into two parts: the **game definition** (the rules of play — platform-independent) and the **app details** (how it's built and delivered). Keeping these separate means the game logic can be reasoned about and tested on its own, without pulling in platform-specific concerns.
+
+**Platform note:** this was originally scoped as a native iOS app, but was switched to a plain browser-based web app to avoid the overhead of Xcode project setup and iOS Simulator runtime installation. Part 1 (game definition) was written to be platform-independent and carried over unchanged; only Part 2 (app details) reflects the web implementation.
 
 ---
 
@@ -49,45 +51,44 @@ This spec is split into two parts: the **game definition** (the rules of play �
 
 ---
 
-## Part 2: App Details (iOS)
+## Part 2: App Details (Web)
 
 ### Platform & Distribution
 
-- Native iOS app, SwiftUI, targeting iPhone/iPad.
-- Installed via Xcode + USB/Wi-Fi debugging with a free Apple ID (no paid Developer Program). App expires after 7 days and is reinstalled by running from Xcode again. No App Store / TestFlight involvement.
+- Plain HTML/CSS/JS — no framework, no build step, no dependencies.
+- Runs by opening `index.html` directly in a browser (or serving it with `python3 -m http.server` if a `file://` origin ever causes friction with browser APIs).
 - Project lives at `~/development/ABCQuiz`, as its own git repository, separate from the applemsp_skylark firmware repo.
 
-### Screens & Views
+### Screens & Layout
 
-- **QuizView** (main screen): top ~40% has a large speaker/replay icon (no reliance on text, since pre-readers can't read a written prompt — the icon plus spoken audio carries the instruction); below it, a 2×2 grid of large tappable letter cards; a gear icon in a corner opens Settings (no parental gate — direct access).
-- **LetterCardView**: reusable card component — large rounded rectangle, big letter glyph, shake animation for wrong taps, dimmed/disabled visual state once eliminated, tap gesture handling.
-- **SettingsView**: modal/sheet with toggles for `autoSpeakEnabled` and `persistMistakes`, and a stepper/picker for `roundsPerSession`.
-- **CelebrationView**: shown after a session ends — displays the score summary and a "Play Again" button that starts a fresh session, returning to QuizView.
+Single page (`index.html`) — the settings panel and celebration screen are sections within the same page (shown/hidden), not separate HTML files:
+
+- **Quiz section** (default view): a large speaker/replay icon/button at the top (no reliance on text, since pre-readers can't read a written prompt — the icon plus spoken audio carries the instruction); below it, a 2×2 grid of large clickable letter cards; a gear icon in a corner opens the Settings panel (no parental gate — direct access).
+- **Letter card**: large rounded box, big letter glyph, shake animation on a wrong click, dimmed/disabled visual state once eliminated for the round.
+- **Settings panel**: toggles for `autoSpeakEnabled` and `persistMistakes`, and a number input/stepper for `roundsPerSession`.
+- **Celebration section**: shown after a session ends — displays the score summary and a "Play Again" button that starts a fresh session, returning to the Quiz section.
 
 ### Architecture
 
-Plain SwiftUI + MVVM — no external dependencies or state-management libraries, given the app's scope:
+Everything lives in a single `app.js` — game engine, speech wrapper, settings/storage, and DOM wiring — per the request to keep logic consolidated rather than split across many small files:
 
-- `GameViewModel` (ObservableObject): owns the game-definition logic (round state, selection logic, mistake tracking, score) as described in Part 1. Views render state provided by the view model and forward taps to it.
-- `SpeechService`: thin wrapper around `AVSpeechSynthesizer`. `speak(letter:)` speaks a single letter; a small set of praise phrases is spoken on correct answers. A single shared synthesizer instance is used, and new speech requests cancel any in-flight speech to avoid overlap.
-- `SettingsStore`: wraps `UserDefaults` to persist `autoSpeakEnabled`, `persistMistakes`, `roundsPerSession`, and (when `persistMistakes` is on) `mistakeCounts`.
+- Game engine (round state, selection logic, mistake tracking, score) implements Part 1 as plain, DOM-free JS functions/classes, exported for testing.
+- A thin wrapper over the browser's `speechSynthesis` API speaks a single letter, and a small set of praise phrases is spoken on correct answers. Any new speech request cancels in-flight speech to avoid overlap.
+- A settings/storage layer wraps `localStorage` (via an injected storage object so tests can substitute an in-memory fake, since Node has no real `localStorage`) to persist `autoSpeakEnabled`, `persistMistakes`, `roundsPerSession`, and (when `persistMistakes` is on) the mistake counts.
+- DOM wiring reads state from the game engine and updates the page; click handlers call into the game engine and re-render.
 
 ### Project Structure
 
 ```
 ABCQuiz/
-  ABCQuizApp.swift
-  ViewModels/GameViewModel.swift
-  Services/SpeechService.swift
-  Services/SettingsStore.swift
-  Views/QuizView.swift
-  Views/LetterCardView.swift
-  Views/SettingsView.swift
-  Views/CelebrationView.swift
-  Models/Round.swift        // target letter + 4 (Character, isUpper) choices
+  index.html
+  styles.css
+  app.js
+  test/
+    app.test.js
 ```
 
 ### Testing / Verification
 
-- The game-definition logic in Part 1 (weighted target selection, no-repeat-target-twice-in-a-row, distractor/case assignment, mistake tracking) is unit-testable with XCTest independent of any UI.
-- The app itself is verified manually: build and run in the iOS Simulator (and on-device), play through multiple rounds checking speech playback, correct/wrong feedback and elimination-hint behavior, settings toggles taking effect, and the celebration screen appearing after the configured round count.
+- The game-definition logic in Part 1 (weighted target selection, no-repeat-target-twice-in-a-row, distractor/case assignment, mistake tracking) is unit-testable using Node's built-in `node:test` + `node:assert` (no npm install needed) — the test file imports the pure, DOM-free exports from `app.js` and runs them directly in Node.
+- The browser-only parts (speech, `localStorage`, DOM wiring) are verified manually: open `index.html` in a browser and play through multiple rounds checking speech playback, correct/wrong feedback and elimination-hint behavior, settings toggles taking effect, and the celebration screen appearing after the configured round count.

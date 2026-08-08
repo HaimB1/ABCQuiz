@@ -125,7 +125,9 @@ class GameEngine {
       this.mistakeCounts[this.currentRound.target] = (this.mistakeCounts[this.currentRound.target] || 0) + 1;
       return 'incorrect';
     }
-    this.correctCount++;
+    if (this.eliminatedLetters.size === 0) {
+      this.correctCount++;
+    }
     this.completedRounds++;
     return 'correct';
   }
@@ -314,7 +316,7 @@ function initApp() {
 
   function showCelebration() {
     quizSection.classList.add('hidden');
-    scoreSummary.textContent = `${engine.correctCount}/${engine.roundsPerSession} correct`;
+    scoreSummary.textContent = `${engine.correctCount}/${engine.roundsPerSession} correct on the first try`;
     celebrationSection.classList.remove('hidden');
   }
 

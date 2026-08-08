@@ -48,6 +48,7 @@ This spec is split into two parts: the **game definition** (the rules of play �
 
 - Correct guess → positive audio/visual feedback + spoken praise (varied phrasing, e.g. "Yes! That's B!", "Great job!") → advance immediately.
 - Wrong guess → negative audio/visual feedback (no advance) → that letter option becomes disabled/eliminated for the remainder of the round → mistake is recorded against the target letter in `mistakeCounts`.
+- A round always counts toward the session length once the target is found, regardless of how many wrong guesses preceded it. It only counts toward the session's final "correct" score if the target was found on the *first* attempt — a mistake that's later corrected still ends that round, but is not forgiven in the score.
 
 ---
 

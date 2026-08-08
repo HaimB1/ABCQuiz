@@ -91,6 +91,18 @@ test('GameEngine.submitGuess with a wrong letter records a mistake and does not 
   assert.ok(engine.eliminatedLetters.has(wrongLetter));
 });
 
+test('GameEngine.submitGuess does not count a round as correct if a wrong guess preceded it', () => {
+  const source = createStubRandomSource([1]);
+  const engine = new GameEngine(10, {}, source);
+  const target = engine.currentRound.target;
+  const wrongLetter = engine.currentRound.choices.map((c) => c.letter).find((l) => l !== target);
+  engine.submitGuess(wrongLetter);
+  const result = engine.submitGuess(target);
+  assert.strictEqual(result, 'correct');
+  assert.strictEqual(engine.completedRounds, 1);
+  assert.strictEqual(engine.correctCount, 0);
+});
+
 test('GameEngine.startNextRound clears eliminated letters and avoids repeating the target', () => {
   const source = createStubRandomSource([1]);
   const engine = new GameEngine(10, {}, source);
